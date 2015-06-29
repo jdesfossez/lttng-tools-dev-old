@@ -1095,6 +1095,8 @@ static void print_channel(struct lttng_channel *channel)
 	MSG("%sread timer interval: %u", indent6, channel->attr.read_timer_interval);
 	MSG("%strace file count: %" PRIu64, indent6, channel->attr.tracefile_count);
 	MSG("%strace file size (bytes): %" PRIu64, indent6, channel->attr.tracefile_size);
+	MSG("%sdiscarded events: %" PRIu64, indent6, channel->attr.discarded_events);
+	MSG("%slost packets: %" PRIu64, indent6, channel->attr.lost_packets);
 	switch (channel->attr.output) {
 		case LTTNG_EVENT_SPLICE:
 			MSG("%soutput: splice()", indent6);

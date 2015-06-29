@@ -361,6 +361,8 @@ THE SOFTWARE.
 			<xs:element name="tracefile_size" type="uint64_type" default="0" minOccurs="0" /> <!-- bytes -->
 			<xs:element name="tracefile_count" type="uint64_type" default="0" minOccurs="0" />
 			<xs:element name="live_timer_interval" type="uint32_type" default="0" minOccurs="0" /> <!-- usec -->
+			<xs:element name="discarded_events" type="uint64_type" default="0" minOccurs="0" />
+			<xs:element name="lost_packets" type="uint64_type" default="0" minOccurs="0" />
 		</xs:all>
 	</xs:complexType>
 
