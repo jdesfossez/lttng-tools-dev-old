@@ -139,12 +139,98 @@ error:
 }
 
 /*
+ * Get run-time attributes if the session has been started (discarded events,
+ * lost packets).
+ */
+static int get_kernel_runtime_stats(struct ltt_session *session,
+		struct ltt_kernel_channel *kchan)
+{
+	int ret;
+
+	if (!session->has_been_started) {
+		ret = 0;
+		kchan->channel->attr.discarded_events = 0;
+		kchan->channel->attr.lost_packets = 0;
+		goto end;
+	}
+
+	ret = consumer_get_discarded_events(session->id, kchan->fd,
+			session->kernel_session->consumer,
+			&kchan->channel->attr.discarded_events);
+	if (ret < 0) {
+		goto end;
+	}
+
+	ret = consumer_get_lost_packets(session->id, kchan->fd,
+			session->kernel_session->consumer,
+			&kchan->channel->attr.lost_packets);
+	if (ret < 0) {
+		goto end;
+	}
+
+end:
+	return ret;
+}
+
+/*
+ * Get run-time attributes if the session has been started (discarded events,
+ * lost packets).
+ */
+static int get_ust_runtime_stats(struct ltt_session *session,
+		struct ltt_ust_channel *uchan,
+		struct lttng_channel *channel)
+{
+	int ret;
+	struct ltt_ust_session *usess;
+
+	if (!session) {
+		ret = -1;
+		goto end;
+	}
+	usess = session->ust_session;
+
+	if (!usess || !session->has_been_started) {
+		channel->attr.discarded_events = 0;
+		channel->attr.lost_packets = 0;
+		ret = 0;
+		goto end;
+	}
+
+	if (usess->buffer_type == LTTNG_BUFFER_PER_UID) {
+		ret = ust_app_uid_channel_runtime_stats(usess->id,
+				&usess->buffer_reg_uid_list,
+				usess->consumer, uchan->id,
+				channel->attr.overwrite,
+				&channel->attr.discarded_events,
+				&channel->attr.lost_packets);
+	} else if (usess->buffer_type == LTTNG_BUFFER_PER_PID) {
+		ret = ust_app_pid_channel_runtime_stats(usess,
+				uchan, usess->consumer,
+				channel->attr.overwrite,
+				&channel->attr.discarded_events,
+				&channel->attr.lost_packets);
+		if (ret < 0) {
+			goto end;
+		}
+		channel->attr.discarded_events += uchan->per_pid_closed_app_discarded;
+		channel->attr.lost_packets += uchan->per_pid_closed_app_lost;
+	} else {
+		ERR("Unsupported buffer type");
+		ret = -1;
+		goto end;
+	}
+
+end:
+	return ret;
+}
+
+/*
  * Fill lttng_channel array of all channels.
  */
 static void list_lttng_channels(enum lttng_domain_type domain,
 		struct ltt_session *session, struct lttng_channel *channels)
 {
-	int i = 0;
+	int i = 0, ret;
 	struct ltt_kernel_channel *kchan;
 
 	DBG("Listing channels for session %s", session->name);
@@ -155,6 +241,10 @@ static void list_lttng_channels(enum lttng_domain_type domain,
 		if (session->kernel_session != NULL) {
 			cds_list_for_each_entry(kchan,
 					&session->kernel_session->channel_list.head, list) {
+				ret = get_kernel_runtime_stats(session, kchan);
+				if (ret < 0) {
+					goto end;
+				}
 				/* Copy lttng_channel struct to array */
 				memcpy(&channels[i], kchan->channel, sizeof(struct lttng_channel));
 				channels[i].enabled = kchan->enabled;
@@ -187,6 +277,10 @@ static void list_lttng_channels(enum lttng_domain_type domain,
 				channels[i].attr.output = LTTNG_EVENT_MMAP;
 				break;
 			}
+			ret = get_ust_runtime_stats(session, uchan, &channels[i]);
+			if (ret < 0) {
+				break;
+			}
 			i++;
 		}
 		rcu_read_unlock();
@@ -195,6 +289,9 @@ static void list_lttng_channels(enum lttng_domain_type domain,
 	default:
 		break;
 	}
+
+end:
+	return;
 }
 
 /*

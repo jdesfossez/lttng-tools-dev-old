@@ -30,7 +30,7 @@ extern "C" {
  *
  * The structures should be initialized to zero before use.
  */
-#define LTTNG_CHANNEL_ATTR_PADDING1        LTTNG_SYMBOL_NAME_LEN + 12
+#define LTTNG_CHANNEL_ATTR_PADDING1        LTTNG_SYMBOL_NAME_LEN - 8 /* 248  */
 struct lttng_channel_attr {
 	int overwrite;                      /* 1: overwrite, 0: discard */
 	uint64_t subbuf_size;               /* bytes, power of 2 */
@@ -43,6 +43,10 @@ struct lttng_channel_attr {
 	uint64_t tracefile_count;           /* number of tracefiles */
 	/* LTTng 2.3 padding limit */
 	unsigned int live_timer_interval;   /* usec */
+	/* LTTng 2.7 padding limit */
+	uint32_t dummy_padding_alignment;
+	uint64_t discarded_events;          /* events (for listing) */
+	uint64_t lost_packets;              /* packets (for listing) */
 
 	char padding[LTTNG_CHANNEL_ATTR_PADDING1];
 };
