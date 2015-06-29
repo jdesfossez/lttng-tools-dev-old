@@ -907,6 +907,22 @@ int mi_lttng_channel_attr(struct mi_writer *writer,
 		goto end;
 	}
 
+	/* Discarded events */
+	ret = mi_lttng_writer_write_element_unsigned_int(writer,
+		config_element_discarded_events,
+		attr->discarded_events);
+	if (ret) {
+		goto end;
+	}
+
+	/* Lost packets */
+	ret = mi_lttng_writer_write_element_unsigned_int(writer,
+			config_element_lost_packets,
+			attr->lost_packets);
+	if (ret) {
+		goto end;
+	}
+
 	/* Closing attributes */
 	ret = mi_lttng_writer_close_element(writer);
 	if (ret) {

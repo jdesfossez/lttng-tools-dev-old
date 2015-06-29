@@ -238,7 +238,7 @@ struct ltt_session *session_find_by_id(uint64_t id)
 
 	assert(id >= 0);
 
-	lttng_ht_lookup(ltt_sessions_ht_by_id, (void *)((uint64_t) id), &iter);
+	lttng_ht_lookup(ltt_sessions_ht_by_id, &id, &iter);
 	node = lttng_ht_iter_get_node_u64(&iter);
 	if (node == NULL) {
 		goto error;
