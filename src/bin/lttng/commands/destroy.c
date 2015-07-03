@@ -78,6 +78,13 @@ static int destroy_session(struct lttng_session *session)
 	int ret;
 	char *session_name = NULL;
 
+	ret = lttng_stop_tracing_no_wait(session->name);
+	if (ret < 0) {
+		if (ret != -LTTNG_ERR_TRACE_ALREADY_STOPPED) {
+			ERR("%s", lttng_strerror(ret));
+		}
+	}
+
 	ret = lttng_destroy_session(session->name);
 	if (ret < 0) {
 		switch (-ret) {
