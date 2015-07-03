@@ -90,11 +90,22 @@ extern int lttng_create_session_live(const char *name, const char *url,
  * The session will not be usable, tracing will be stopped thus buffers will be
  * flushed.
  *
+ * This call will wait for data availability for each domain of the session so
+ * this can take an arbitrary amount of time. However, when returning you have
+ * the guarantee that the data is ready to be read and analyzed. Use the
+ * _no_wait call below to avoid this behavior.
+ *
  * The name can't be NULL here.
  *
  * Return 0 on success else a negative LTTng error code.
  */
 extern int lttng_destroy_session(const char *name);
+
+/*
+ * Behave exactly like lttng_destroy_session but does not wait for data
+ * availability.
+ */
+extern int lttng_destroy_session_no_wait(const char *name);
 
 /*
  * List all the tracing sessions.
