@@ -156,6 +156,7 @@ static int stop_tracing(void)
 
 	ret = CMD_SUCCESS;
 
+	get_session_stats(session_name);
 	MSG("Tracing stopped for session %s", session_name);
 	if (lttng_opt_mi) {
 		ret = mi_print_session(session_name, 0);

@@ -84,6 +84,7 @@ static int destroy_session(struct lttng_session *session)
 			ERR("%s", lttng_strerror(ret));
 		}
 	}
+	get_session_stats(session->name);
 
 	ret = lttng_destroy_session(session->name);
 	if (ret < 0) {
