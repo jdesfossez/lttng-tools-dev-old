@@ -106,6 +106,7 @@ static int destroy_session(struct lttng_session *session)
 		} while (ret != 0);
 		MSG("");
 	}
+	get_session_stats(session->name);
 
 	ret = lttng_destroy_session_no_wait(session->name);
 	if (ret < 0) {
