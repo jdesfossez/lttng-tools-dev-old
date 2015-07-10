@@ -142,6 +142,7 @@ int lttng_kconsumer_snapshot_channel(uint64_t key, char *path,
 	}
 
 	cds_list_for_each_entry(stream, &channel->streams.head, send_node) {
+		int first, lost;
 
 		health_code_update();
 
@@ -225,6 +226,8 @@ int lttng_kconsumer_snapshot_channel(uint64_t key, char *path,
 				produced_pos, nb_packets_per_stream,
 				stream->max_sb_size);
 
+		first = 1;
+		lost = 0;
 		while (consumed_pos < produced_pos) {
 			ssize_t read_len;
 			unsigned long len, padded_len;
@@ -242,6 +245,15 @@ int lttng_kconsumer_snapshot_channel(uint64_t key, char *path,
 				}
 				DBG("Kernel consumer get subbuf failed. Skipping it.");
 				consumed_pos += stream->max_sb_size;
+
+				/*
+				 * Start accounting lost packets only when we
+				 * already have extracted packets (to match the
+				 * content of the final snapshot).
+				 */
+				if (!first) {
+					lost++;
+				}
 				continue;
 			}
 
@@ -285,6 +297,16 @@ int lttng_kconsumer_snapshot_channel(uint64_t key, char *path,
 				goto end_unlock;
 			}
 			consumed_pos += stream->max_sb_size;
+
+			/*
+			 * Only account lost packets located between
+			 * succesfully extracted packets (do not account before
+			 * and after since they are not visible in the
+			 * resulting snapshot).
+			 */
+			stream->chan->lost_packets += lost;
+			lost = 0;
+			first = 0;
 		}
 
 		if (relayd_id == (uint64_t) -1ULL) {
