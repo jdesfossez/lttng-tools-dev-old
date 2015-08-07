@@ -113,6 +113,10 @@ struct ltt_session {
 	 * Path where to keep the shared memory files.
 	 */
 	char shm_path[PATH_MAX];
+	/*
+	 * Node in ltt_sessions_ht_by_id.
+	 */
+	struct lttng_ht_node_u64 node;
 };
 
 /* Prototypes */
@@ -125,8 +129,12 @@ void session_unlock(struct ltt_session *session);
 void session_unlock_list(void);
 
 struct ltt_session *session_find_by_name(const char *name);
+struct ltt_session *session_find_by_id(uint64_t id);
 struct ltt_session_list *session_get_list(void);
 
 int session_access_ok(struct ltt_session *session, uid_t uid, gid_t gid);
+
+int ltt_sessions_ht_alloc(void);
+void ltt_sessions_ht_destroy(void);
 
 #endif /* _LTT_SESSION_H */
