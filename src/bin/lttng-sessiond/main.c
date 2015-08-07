@@ -713,6 +713,9 @@ static void sessiond_cleanup(void)
 	DBG("Cleaning up all agent apps");
 	agent_app_ht_clean();
 
+	DBG("Cleaning up sessions_by_id ht");
+	ltt_sessions_ht_destroy();
+
 	DBG("Closing all UST sockets");
 	ust_app_clean_list();
 	buffer_reg_destroy_registries();
@@ -5918,6 +5921,13 @@ int main(int argc, char **argv)
 		goto exit_init_data;
 	}
 	load_info->path = opt_load_session_path;
+
+	ret = ltt_sessions_ht_alloc();
+	if (ret) {
+		ERR("Error allocating the sessions HT");
+		retval = -1;
+		goto exit_init_data;
+	}
 
 	/* Create health-check thread */
 	ret = pthread_create(&health_thread, NULL,
