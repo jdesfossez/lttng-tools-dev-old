@@ -137,6 +137,9 @@ enum lttng_error_code {
 	LTTNG_ERR_PID_TRACKED            = 114, /* PID already tracked */
 	LTTNG_ERR_PID_NOT_TRACKED        = 115, /* PID not tracked */
 	LTTNG_ERR_INVALID_CHANNEL_DOMAIN = 116, /* Invalid channel domain */
+	LTTNG_ERR_SESSION_NOT_STARTED    = 117, /* Session not started */
+	LTTNG_ERR_LIVE_SESSION           = 118, /* Live session unsupported */
+	LTTNG_ERR_PER_PID_SESSION        = 119, /* Per-PID sessions unsupported */
 
 	/* MUST be last element */
 	LTTNG_ERR_NR,                           /* Last element */
