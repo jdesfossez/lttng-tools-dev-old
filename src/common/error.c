@@ -169,6 +169,9 @@ static const char *error_string_array[] = {
 	[ ERROR_INDEX(LTTNG_ERR_PID_TRACKED) ] = "PID already tracked",
 	[ ERROR_INDEX(LTTNG_ERR_PID_NOT_TRACKED) ] = "PID not tracked",
 	[ ERROR_INDEX(LTTNG_ERR_INVALID_CHANNEL_DOMAIN) ] = "Invalid channel domain",
+	[ ERROR_INDEX(LTTNG_ERR_SESSION_NOT_STARTED) ] = "Session not started",
+	[ ERROR_INDEX(LTTNG_ERR_LIVE_SESSION) ] = "Live sessions not supported",
+	[ ERROR_INDEX(LTTNG_ERR_PER_PID_SESSION) ] = "Per-PID sessions not supported",
 
 	/* Last element */
 	[ ERROR_INDEX(LTTNG_ERR_NR) ] = "Unknown error code"

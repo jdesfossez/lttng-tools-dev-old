@@ -3016,6 +3016,7 @@ static int process_client_msg(struct command_ctx *cmd_ctx, int sock,
 	case LTTNG_SNAPSHOT_RECORD:
 	case LTTNG_SAVE_SESSION:
 	case LTTNG_SET_SESSION_SHM_PATH:
+	case LTTNG_METADATA_REGENERATE:
 		need_domain = 0;
 		break;
 	default:
@@ -4126,6 +4127,21 @@ error_add_context:
 	{
 		ret = cmd_set_session_shm_path(cmd_ctx->session,
 				cmd_ctx->lsm->u.set_shm_path.shm_path);
+		break;
+	}
+	case LTTNG_METADATA_REGENERATE:
+	{
+		/*
+		 * 4 bytes to return whether or not the command succeeded
+		 * (and LTTNG_ERR code).
+		 */
+		ret = setup_lttng_msg(cmd_ctx, sizeof(uint32_t));
+		if (ret < 0) {
+			goto setup_error;
+		}
+
+		ret = cmd_metadata_regenerate(cmd_ctx->session);
+		*cmd_ctx->llm->payload = (uint32_t) ret;
 		break;
 	}
 	default:

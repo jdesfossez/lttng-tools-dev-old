@@ -31,6 +31,7 @@
 #include <signal.h>
 
 #include <bin/lttng-consumerd/health-consumerd.h>
+#include <lttng/ust-ctl.h>
 #include <common/common.h>
 #include <common/utils.h>
 #include <common/compat/poll.h>
@@ -1556,6 +1557,16 @@ ssize_t lttng_consumer_on_read_subbuffer_mmap(
 		if (stream->metadata_flag) {
 			/* Metadata requires the control socket. */
 			pthread_mutex_lock(&relayd->ctrl_sock_mutex);
+			if (stream->reset_metadata_flag) {
+				ret = relayd_reset_metadata(&relayd->control_sock,
+						stream->relayd_stream_id,
+						stream->metadata_version);
+				if (ret < 0) {
+					relayd_hang_up = 1;
+					goto write_error;
+				}
+				stream->reset_metadata_flag = 0;
+			}
 			netlen += sizeof(struct lttcomm_relayd_metadata_payload);
 		}
 
@@ -1578,6 +1589,15 @@ ssize_t lttng_consumer_on_read_subbuffer_mmap(
 	} else {
 		/* No streaming, we have to set the len with the full padding */
 		len += padding;
+
+		if (stream->metadata_flag && stream->reset_metadata_flag) {
+			ret = utils_truncate_stream_file(stream->out_fd, 0);
+			if (ret < 0) {
+				ERR("Reset metadata file");
+				goto end;
+			}
+			stream->reset_metadata_flag = 0;
+		}
 
 		/*
 		 * Check if we need to change the tracefile before writing the packet.
@@ -1744,6 +1764,16 @@ ssize_t lttng_consumer_on_read_subbuffer_splice(
 			 */
 			pthread_mutex_lock(&relayd->ctrl_sock_mutex);
 
+			if (stream->reset_metadata_flag) {
+				ret = relayd_reset_metadata(&relayd->control_sock,
+						stream->relayd_stream_id,
+						stream->metadata_version);
+				if (ret < 0) {
+					relayd_hang_up = 1;
+					goto write_error;
+				}
+				stream->reset_metadata_flag = 0;
+			}
 			ret = write_relayd_metadata_id(splice_pipe[1], stream, relayd,
 					padding);
 			if (ret < 0) {
@@ -1767,6 +1797,14 @@ ssize_t lttng_consumer_on_read_subbuffer_splice(
 		/* No streaming, we have to set the len with the full padding */
 		len += padding;
 
+		if (stream->metadata_flag && stream->reset_metadata_flag) {
+			ret = utils_truncate_stream_file(stream->out_fd, 0);
+			if (ret < 0) {
+				ERR("Reset metadata file");
+				goto end;
+			}
+			stream->reset_metadata_flag = 0;
+		}
 		/*
 		 * Check if we need to change the tracefile before writing the packet.
 		 */
