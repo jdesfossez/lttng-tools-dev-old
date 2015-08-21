@@ -574,6 +574,8 @@ int ust_registry_session_init(struct ust_registry_session **sessionp,
 	session->metadata_fd = -1;
 	session->uid = euid;
 	session->gid = egid;
+	session->major = major;
+	session->minor = minor;
 	strncpy(session->root_shm_path, root_shm_path,
 		sizeof(session->root_shm_path));
 	session->root_shm_path[sizeof(session->root_shm_path) - 1] = '\0';

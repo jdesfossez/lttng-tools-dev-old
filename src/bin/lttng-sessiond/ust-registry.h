@@ -91,6 +91,13 @@ struct ust_registry_session {
 	/* User and group owning the session. */
 	uid_t uid;
 	gid_t gid;
+
+	/*
+	 * Copy of the tracer version when the first app is registered.
+	 * It is used if we need to regenerate the metadata.
+	 */
+	uint32_t major;
+	uint32_t minor;
 };
 
 struct ust_registry_channel {
