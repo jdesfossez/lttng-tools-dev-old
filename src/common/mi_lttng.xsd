@@ -500,6 +500,21 @@ THE SOFTWARE.
 		</xs:restriction>
 	</xs:simpleType>
 
+	<!-- Maps to an action during metadata command -->
+	<xs:complexType name="metadata_action_type">
+		<xs:sequence>
+			<xs:element name="name" type="metadata_actiontype_type" minOccurs="0" />
+			<xs:element name="output" type="output_type" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<!-- Type of metadata commands -->
+	<xs:simpleType name="metadata_actiontype_type">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="regenerate" />
+		</xs:restriction>
+	</xs:simpleType>
+
 	<xs:complexType name="output_type">
 		<xs:choice>
 			<xs:element name="domains" type="domains_type" minOccurs="0" />
@@ -516,6 +531,7 @@ THE SOFTWARE.
 			<xs:element name="events" type="event_list_type" minOccurs="0" />
 			<xs:element name="channel" type="channel_type" minOccurs="0" />
 			<xs:element name="targets" type="targets_type" minOccurs="0" />
+			<xs:element name="metadata_action" type="metadata_action_type" minOccurs="0" />
 		</xs:choice>
 	</xs:complexType>
 
@@ -540,6 +556,7 @@ THE SOFTWARE.
 			<xs:enumeration value="disable-channel" />
 			<xs:enumeration value="track" />
 			<xs:enumeration value="untrack" />
+			<xs:enumeration value="metadata" />
 		</xs:restriction>
 	</xs:simpleType>
 
