@@ -165,6 +165,10 @@ const char * const config_event_context_pthread_id = "PTHREAD_ID";
 const char * const config_event_context_hostname = "HOSTNAME";
 const char * const config_event_context_ip = "IP";
 const char * const config_event_context_perf_thread_counter = "PERF_THREAD_COUNTER";
+const char * const config_event_context_interruptible = "INTERRUPTIBLE";
+const char * const config_event_context_preemptible = "PREEMPTIBLE";
+const char * const config_event_context_need_reschedule = "NEED_RESCHEDULE";
+const char * const config_event_context_migratable = "MIGRATABLE";
 
 struct consumer_output {
 	int enabled;
@@ -946,6 +950,18 @@ int get_context_type(xmlChar *context_type)
 	} else if (!strcmp((char *) context_type,
 		config_event_context_ip)) {
 		ret = LTTNG_EVENT_CONTEXT_IP;
+	} else if (!strcmp((char *) context_type,
+		config_event_context_interruptible)) {
+		ret = LTTNG_EVENT_CONTEXT_INTERRUPTIBLE;
+	} else if (!strcmp((char *) context_type,
+		config_event_context_preemptible)) {
+		ret = LTTNG_EVENT_CONTEXT_PREEMPTIBLE;
+	} else if (!strcmp((char *) context_type,
+		config_event_context_need_reschedule)) {
+		ret = LTTNG_EVENT_CONTEXT_NEED_RESCHEDULE;
+	} else if (!strcmp((char *) context_type,
+		config_event_context_migratable)) {
+		ret = LTTNG_EVENT_CONTEXT_MIGRATABLE;
 	} else {
 		goto error;
 	}
