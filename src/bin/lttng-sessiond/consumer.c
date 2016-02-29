@@ -1393,10 +1393,13 @@ int consumer_get_discarded_events(uint64_t session_id, uint64_t channel_key,
 	msg.u.discarded_events.session_id = session_id;
 	msg.u.discarded_events.channel_key = channel_key;
 
+	*discarded = 0;
+
 	/* Send command for each consumer */
 	rcu_read_lock();
 	cds_lfht_for_each_entry(consumer->socks->ht, &iter.iter, socket,
 			node.node) {
+		uint64_t consumer_discarded = 0;
 		pthread_mutex_lock(socket->lock);
 		ret = consumer_socket_send(socket, &msg, sizeof(msg));
 		if (ret < 0) {
@@ -1408,13 +1411,15 @@ int consumer_get_discarded_events(uint64_t session_id, uint64_t channel_key,
 		 * No need for a recv reply status because the answer to the
 		 * command is the reply status message.
 		 */
-		ret = consumer_socket_recv(socket, discarded, sizeof(*discarded));
+		ret = consumer_socket_recv(socket, &consumer_discarded,
+				sizeof(consumer_discarded));
 		if (ret < 0) {
 			ERR("get discarded events");
 			pthread_mutex_unlock(socket->lock);
 			goto end;
 		}
 		pthread_mutex_unlock(socket->lock);
+		*discarded += consumer_discarded;
 	}
 	ret = 0;
 	DBG("Consumer discarded %" PRIu64 " events in session id %" PRIu64,
@@ -1445,10 +1450,13 @@ int consumer_get_lost_packets(uint64_t session_id, uint64_t channel_key,
 	msg.u.lost_packets.session_id = session_id;
 	msg.u.lost_packets.channel_key = channel_key;
 
+	*lost = 0;
+
 	/* Send command for each consumer */
 	rcu_read_lock();
 	cds_lfht_for_each_entry(consumer->socks->ht, &iter.iter, socket,
 			node.node) {
+		uint64_t consumer_lost = 0;
 		pthread_mutex_lock(socket->lock);
 		ret = consumer_socket_send(socket, &msg, sizeof(msg));
 		if (ret < 0) {
@@ -1460,13 +1468,15 @@ int consumer_get_lost_packets(uint64_t session_id, uint64_t channel_key,
 		 * No need for a recv reply status because the answer to the
 		 * command is the reply status message.
 		 */
-		ret = consumer_socket_recv(socket, lost, sizeof(*lost));
+		ret = consumer_socket_recv(socket, &consumer_lost,
+				sizeof(consumer_lost));
 		if (ret < 0) {
 			ERR("get lost packets");
 			pthread_mutex_unlock(socket->lock);
 			goto end;
 		}
 		pthread_mutex_unlock(socket->lock);
+		*lost += consumer_lost;
 	}
 	ret = 0;
 	DBG("Consumer lost %" PRIu64 " packets in session id %" PRIu64,
