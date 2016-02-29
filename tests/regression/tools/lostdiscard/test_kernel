@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# Copyright (C) - 2016 Julien Desfossez <jdesfossez@efficios.com>
+#
+# This library is free software; you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation; version 2.1 of the License.
+#
+# This library is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+TEST_DESC="Packet lost / Events discarded accounting - Kernel tracing"
+
+CURDIR=$(dirname $0)/
+TESTDIR=$CURDIR/../../..
+EVENT_NAME="lttng_test_filter_event"
+SESSION_NAME=""
+
+TRACE_PATH=$(mktemp -d)
+
+NUM_TESTS=18
+
+source $TESTDIR/utils/utils.sh
+source $TESTDIR/regression/tools/lostdiscard/common.sh
+if test $? != 0; then
+	fail "Import common functions"
+	return
+fi
+
+# LTTng kernel modules check
+out=`ls /lib/modules/$(uname -r)/extra | grep lttng`
+if [ -z "$out" ]; then
+	BAIL_OUT "LTTng modules not detected."
+fi
+
+function test_kernel_discard ()
+{
+	diag "Test UST local with discard mode"
+	for i in $(seq 1 10); do
+		create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+		enable_channel_small --discard $SESSION_NAME chan1 -k
+		lttng_enable_kernel_event $SESSION_NAME $EVENT_NAME chan1
+		start_lttng_tracing_ok $SESSION_NAME
+		echo -n "100000" > /proc/lttng-test-filter-event
+		stop_lttng_tracing_ok $SESSION_NAME
+		lttng_list_discarded $SESSION_NAME
+		discarded1=$?
+		destroy_lttng_session_ok $SESSION_NAME
+		# Validate test
+		validate_discarded $TRACE_PATH
+		discarded2=$?
+		if test $discarded1 = $discarded2; then
+			ok 0 "Discard counter match ($discarded1)"
+		else
+			fail "Discard counter does not match ($discarded1 vs $discarded2)"
+		fi
+		if [ $? -eq 0 ]; then
+			# Only delete if successful
+			rm -rf $TRACE_PATH
+		fi
+		if test $discarded1 -gt 0; then
+			break
+		fi
+	done
+}
+
+function test_kernel_overwrite ()
+{
+	diag "Test kernel local with overwrite mode"
+	check_babeltrace_version
+	if test $? != 0; then
+		skip 0 "Babeltrace too old for this feature, 1.4 or 2.0 required"
+		return
+	fi
+	for i in $(seq 1 10); do
+		create_lttng_session_ok $SESSION_NAME $TRACE_PATH
+		enable_channel_small --overwrite $SESSION_NAME chan1 -k
+		lttng_enable_kernel_event $SESSION_NAME $EVENT_NAME chan1
+		start_lttng_tracing_ok $SESSION_NAME
+		echo -n "100000" > /proc/lttng-test-filter-event
+		stop_lttng_tracing_ok $SESSION_NAME
+		lttng_list_lost $SESSION_NAME
+		lost1=$?
+		destroy_lttng_session_ok $SESSION_NAME
+		# Validate test
+		validate_lost $TRACE_PATH
+		lost2=$?
+		if test $lost1 = $lost2; then
+			ok 0 "Overwrite counter match ($lost1)"
+		else
+			fail "Overwrite counter does not match ($lost1 vs $lost2)"
+		fi
+		if [ $? -eq 0 ]; then
+			# Only delete if successful
+			rm -rf $TRACE_PATH
+		fi
+		if test $lost1 -gt 0; then
+			break
+		fi
+	done
+}
+
+# no plan because we do the same test up to 10 times if no events are
+# lost or discarded
+plan_no_plan
+
+print_test_banner "$TEST_DESC"
+
+if [ "$(id -u)" == "0" ]; then
+	isroot=1
+else
+	isroot=0
+fi
+
+skip $isroot "Root access is needed. Skipping all kernel streaming tests." $NUM_TESTS ||
+{
+	start_lttng_sessiond
+	modprobe lttng-test
+
+	tests=( test_kernel_overwrite test_kernel_discard )
+
+	for fct_test in ${tests[@]};
+	do
+		SESSION_NAME=$(randstring 16 0)
+		${fct_test}
+	done
+
+	rmmod lttng-test
+	stop_lttng_sessiond
+}
