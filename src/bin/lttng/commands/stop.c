@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include <common/sessiond-comm/sessiond-comm.h>
 #include <common/mi-lttng.h>
@@ -106,6 +107,7 @@ static int stop_tracing(void)
 {
 	int ret;
 	char *session_name;
+	uint64_t discarded, lost;
 
 	if (opt_session_name == NULL) {
 		session_name = get_session_name();
@@ -155,7 +157,17 @@ static int stop_tracing(void)
 
 	ret = CMD_SUCCESS;
 
-	get_session_stats(session_name);
+	get_session_stats(session_name, &discarded, &lost);
+	if (discarded > 0) {
+		MSG("[warning] %" PRIu64 " events discarded, please refer to "
+				"the documentation on channel configuration.",
+				discarded);
+	}
+	if (lost > 0) {
+		MSG("[warning] %" PRIu64 " packets lost, please refer to "
+				"the documentation on channel configuration.",
+				lost);
+	}
 	MSG("Tracing stopped for session %s", session_name);
 	if (lttng_opt_mi) {
 		ret = mi_print_session(session_name, 0);

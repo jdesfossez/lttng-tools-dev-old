@@ -59,6 +59,7 @@ int print_missing_or_multiple_domains(unsigned int sum);
 
 int spawn_relayd(const char *pathname, int port);
 int check_relayd(void);
-void get_session_stats(const char *session_name);
+void get_session_stats(const char *session_name, uint64_t *discarded,
+		uint64_t *lost);
 
 #endif /* _LTTNG_UTILS_H */

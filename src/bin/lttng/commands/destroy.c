@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "../command.h"
 
@@ -79,6 +80,7 @@ static int destroy_session(struct lttng_session *session)
 {
 	int ret;
 	char *session_name = NULL;
+	uint64_t discarded, lost;
 
 	ret = lttng_stop_tracing_no_wait(session->name);
 	if (ret < 0 && ret != -LTTNG_ERR_TRACE_ALREADY_STOPPED) {
@@ -106,7 +108,17 @@ static int destroy_session(struct lttng_session *session)
 		} while (ret != 0);
 		MSG("");
 	}
-	get_session_stats(session->name);
+	get_session_stats(session->name, &discarded, &lost);
+	if (discarded > 0) {
+		MSG("[warning] %" PRIu64 " events discarded, please refer to "
+				"the documentation on channel configuration.",
+				discarded);
+	}
+	if (lost > 0) {
+		MSG("[warning] %" PRIu64 " packets lost, please refer to "
+				"the documentation on channel configuration.",
+				lost);
+	}
 
 	ret = lttng_destroy_session_no_wait(session->name);
 	if (ret < 0) {
