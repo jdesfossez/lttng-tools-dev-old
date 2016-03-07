@@ -133,9 +133,29 @@ static int destroy_session(struct lttng_session *session)
 	}
 
 	if (lttng_opt_mi) {
-		ret = mi_lttng_session(writer, session, 0);
+		/* Note : this returns an open session element */
+		ret = mi_lttng_session(writer, session, 1);
 		if (ret) {
 			ret = CMD_ERROR;
+			goto error;
+		}
+		/* Discarded events */
+		ret = mi_lttng_writer_write_element_unsigned_int(writer,
+				config_element_discarded_events, discarded);
+		if (ret) {
+			goto error;
+		}
+
+		/* Lost packets */
+		ret = mi_lttng_writer_write_element_unsigned_int(writer,
+				config_element_lost_packets, lost);
+		if (ret) {
+			goto error;
+		}
+
+		/* Close session element */
+		ret = mi_lttng_writer_close_element(writer);
+		if (ret) {
 			goto error;
 		}
 	}

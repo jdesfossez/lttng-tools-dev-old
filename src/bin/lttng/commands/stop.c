@@ -67,7 +67,8 @@ static void usage(FILE *ofp)
 /*
  * Mi print of partial session
  */
-static int mi_print_session(char *session_name, int enabled)
+static int mi_print_session(char *session_name, int enabled,
+		uint64_t discarded, uint64_t lost)
 {
 	int ret;
 	assert(writer);
@@ -89,6 +90,20 @@ static int mi_print_session(char *session_name, int enabled)
 	/* Is enabled ? */
 	ret = mi_lttng_writer_write_element_bool(writer, config_element_enabled,
 			enabled);
+	if (ret) {
+		goto end;
+	}
+
+	/* Discarded events */
+	ret = mi_lttng_writer_write_element_unsigned_int(writer,
+			config_element_discarded_events, discarded);
+	if (ret) {
+		goto end;
+	}
+
+	/* Lost packets */
+	ret = mi_lttng_writer_write_element_unsigned_int(writer,
+			config_element_lost_packets, lost);
 	if (ret) {
 		goto end;
 	}
@@ -170,7 +185,7 @@ static int stop_tracing(void)
 	}
 	MSG("Tracing stopped for session %s", session_name);
 	if (lttng_opt_mi) {
-		ret = mi_print_session(session_name, 0);
+		ret = mi_print_session(session_name, 0, discarded, lost);
 		if (ret) {
 			goto free_name;
 		}
