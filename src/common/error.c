@@ -170,6 +170,7 @@ static const char *error_string_array[] = {
 	[ ERROR_INDEX(LTTNG_ERR_PID_NOT_TRACKED) ] = "PID not tracked",
 	[ ERROR_INDEX(LTTNG_ERR_INVALID_CHANNEL_DOMAIN) ] = "Invalid channel domain",
 	[ ERROR_INDEX(LTTNG_ERR_OVERFLOW) ] = "Overflow occured",
+	[ ERROR_INDEX(LTTNG_ERR_KERN_CONTEXT_UNAVAIL) ] = "Context unavailable on this kernel",
 
 	/* Last element */
 	[ ERROR_INDEX(LTTNG_ERR_NR) ] = "Unknown error code"
