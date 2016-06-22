@@ -467,6 +467,13 @@ AC_CHECK_LIB([c], [open_memstream],
 ]
 )
 
+# check for libpfm
+AC_CHECK_LIB([pfm], [pfm_initialize],
+	     [
+	      have_libpfm=yes
+	      ])
+AM_CONDITIONAL([LTTNG_TOOLS_BUILD_WITH_LIBPFM], [test "x$have_libpfm" = "xyes"])
+
 AC_ARG_ENABLE([git-version],
               [AC_HELP_STRING([--disable-git-version],
                               [Do not use the git version for the build])],
@@ -1008,6 +1015,7 @@ AC_CONFIG_FILES([
 	tests/stress/Makefile
 	tests/unit/Makefile
 	tests/unit/ini_config/Makefile
+	tests/perf/Makefile
 	tests/utils/Makefile
 	tests/utils/tap/Makefile
 	tests/utils/testapp/Makefile
