@@ -2003,6 +2003,7 @@ int lttng_ustconsumer_recv_cmd(struct lttng_consumer_local_data *ctx,
 		}
 
 		health_code_update();
+		ret_code = ret;
 
 		ret = consumer_send_status_msg(sock, ret_code);
 		if (ret < 0) {
