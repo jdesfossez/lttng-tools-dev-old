@@ -513,9 +513,6 @@ static void stop_threads(void)
 	/* Dispatch thread */
 	CMM_STORE_SHARED(dispatch_thread_exit, 1);
 	futex_nto1_wake(&ust_cmd_queue.futex);
-
-	/* timer thread */
-	kill(getpid(), LTTNG_SESSIOND_SIG_EXIT);
 }
 
 /*
@@ -5743,6 +5740,11 @@ int main(int argc, char **argv)
 		goto exit_set_signal_handler;
 	}
 
+	if (sessiond_timer_signal_init()) {
+		retval = -1;
+		goto exit_set_signal_handler;
+	}
+
 	setup_consumerd_path();
 
 	page_size = sysconf(_SC_PAGESIZE);
@@ -6569,6 +6571,7 @@ exit_init_data:
 	}
 
 	if (timer_thread_running) {
+		kill(getpid(), LTTNG_SESSIOND_SIG_EXIT);
 		ret = pthread_join(timer_thread, &status);
 		if (ret) {
 			errno = ret;
