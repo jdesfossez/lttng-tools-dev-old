@@ -4274,7 +4274,6 @@ error_add_context:
 		ret = cmd_rotate_session(cmd_ctx->session, &rotate_return);
 		if (ret < 0) {
 			ret = -ret;
-			fprintf(stderr, "cmd ret: %d\n", ret);
 			goto error;
 		}
 
@@ -4332,7 +4331,6 @@ error:
 	}
 	/* Set return code */
 	cmd_ctx->llm->ret_code = ret;
-	fprintf(stderr, "llm ret: %d\n", ret);
 setup_error:
 	if (cmd_ctx->session) {
 		session_unlock(cmd_ctx->session);

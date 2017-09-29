@@ -2297,7 +2297,6 @@ int rotate_notify_sessiond(struct lttng_consumer_local_data *ctx,
 {
 	int ret;
 
-	fprintf(stderr, "Notif send\n");
 	do {
 		ret = write(ctx->channel_rotate_pipe, &key, sizeof(key));
 	} while (ret == -1 && errno == EINTR);
@@ -2307,7 +2306,6 @@ int rotate_notify_sessiond(struct lttng_consumer_local_data *ctx,
 		DBG("Sent channel rotation notification for channel key %"
 				PRIu64, key);
 	}
-	fprintf(stderr, "Notif done\n");
 
 	return ret;
 }
@@ -2351,7 +2349,6 @@ int consumer_post_rotation(struct lttng_consumer_stream *stream,
 			abort();
 	}
 
-	fprintf(stderr, "nr_pending: %lu\n", stream->chan->nr_stream_rotate_pending);
 	if (--stream->chan->nr_stream_rotate_pending == 0) {
 		ret = rotate_notify_sessiond(ctx, stream->chan->key);
 	}
@@ -2381,7 +2378,6 @@ int handle_rotate_wakeup_pipe(struct lttng_consumer_local_data *ctx,
 	}
 
 	pthread_mutex_lock(&stream->lock);
-	fprintf(stderr, "Rotate wakeup pipe, stream %lu\n", stream->key);
 	ret = lttng_consumer_rotate_stream(ctx, stream);
 	pthread_mutex_unlock(&stream->lock);
 	if (ret < 0) {
@@ -2549,7 +2545,6 @@ restart:
 					}
 				} else if (revents & (LPOLLERR | LPOLLHUP)) {
 					DBG("Metadata rotate pipe hung up");
-					fprintf(stderr, "Metadata rotate pipe hung up");
 					/*
 					 * Remove the pipe from the poll set and continue the loop
 					 * since their might be data to consume.
@@ -2821,7 +2816,6 @@ void *consumer_thread_data_poll(void *data)
 
 		/* Handle consumer_data_rotate_pipe. */
 		if (pollfd[nb_fd + 2].revents & (POLLIN | POLLPRI)) {
-			fprintf(stderr, "data wakeup pipe\n");
 			ret = handle_rotate_wakeup_pipe(ctx,
 					ctx->consumer_data_rotate_pipe);
 			if (ret < 0) {
@@ -3520,7 +3514,6 @@ ssize_t lttng_consumer_read_subbuffer(struct lttng_consumer_stream *stream,
 		pthread_cond_broadcast(&stream->metadata_rdv);
 		pthread_mutex_unlock(&stream->metadata_rdv_lock);
 	}
-	fprintf(stderr, "rotated: %d\n", stream->rotated);
 	pthread_mutex_unlock(&stream->lock);
 
 	rotate_ret = consumer_post_rotation(stream, ctx);
@@ -4104,18 +4097,11 @@ int lttng_consumer_rotate_channel(uint64_t key, char *path,
 			ERR("Produced snapshot position");
 			goto end_unlock;
 		}
-		fprintf(stderr, "Stream %lu should rotate after %lu to %s\n",
-				stream->key, stream->rotate_position,
-				channel->pathname);
 		lttng_consumer_get_consumed_snapshot(stream,
 				&consumed_pos);
-		fprintf(stderr, "consumed %lu\n", consumed_pos);
 		if (consumed_pos == stream->rotate_position) {
 			stream->rotate_ready = 1;
-			fprintf(stderr, "Stream %lu ready to rotate to %s\n",
-					stream->key, channel->pathname);
 		}
-		fprintf(stderr, "before increasinc nr_pending: %lu\n", channel->nr_stream_rotate_pending);
 		channel->nr_stream_rotate_pending++;
 
 		ret = consumer_flush_buffer(stream, 1);
@@ -4154,8 +4140,6 @@ int lttng_consumer_stream_is_rotate_ready(struct lttng_consumer_stream *stream)
 	}
 
 	if (stream->rotate_ready) {
-		fprintf(stderr, "Rotate position reached for stream %lu\n",
-				stream->key);
 		ret = 1;
 		goto end;
 	}
@@ -4176,15 +4160,11 @@ int lttng_consumer_stream_is_rotate_ready(struct lttng_consumer_stream *stream)
 		goto end;
 	}
 
-	fprintf(stderr, "packet %lu, pos %lu\n", stream->key, consumed_pos);
 	/* Rotate position not reached yet. */
 	if ((long) (consumed_pos - stream->rotate_position) < 0) {
 		ret = 0;
 		goto end;
 	}
-	fprintf(stderr, "Rotate position %lu (expected %lu) reached for stream %lu\n",
-			consumed_pos, stream->rotate_position,
-			stream->key);
 	ret = 1;
 
 end:
@@ -4215,8 +4195,6 @@ int rotate_local_stream(struct lttng_consumer_local_data *ctx,
 		goto error;
 	}
 
-	fprintf(stderr, "Rotating stream %lu to %s/%s\n", stream->key,
-			stream->channel_ro_pathname, stream->name);
 	ret = utils_create_stream_file(stream->channel_ro_pathname, stream->name,
 			stream->channel_ro_tracefile_size, stream->tracefile_count_current,
 			stream->uid, stream->gid, NULL);
@@ -4362,10 +4340,8 @@ int lttng_consumer_rotate_ready_streams(uint64_t key,
 	}
 
 	if (channel->metadata_stream) {
-		fprintf(stderr, "M\n");
 		stream_pipe = ctx->consumer_metadata_rotate_pipe;
 	} else {
-		fprintf(stderr, "D\n");
 		stream_pipe = ctx->consumer_data_rotate_pipe;
 	}
 
@@ -4378,13 +4354,11 @@ int lttng_consumer_rotate_ready_streams(uint64_t key,
 		if (stream->rotate_ready == 0) {
 			continue;
 		}
-		fprintf(stderr, "send stream %lu on wakeup pipe\n", stream->key);
 		ret = lttng_pipe_write(stream_pipe, &stream, sizeof(stream));
 		if (ret < 0) {
 			ERR("Failed to wakeup consumer rotate pipe");
 			goto end;
 		}
-		fprintf(stderr, "done sending stream %lu on wakeup pipe\n", stream->key);
 	}
 
 	ret = 0;
