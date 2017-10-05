@@ -1171,19 +1171,15 @@ int kernel_rotate_session(struct ltt_session *session)
 				LTTNG_DOMAIN_KERNEL, session);
 		if (ret < 0) {
 			ret = LTTNG_ERR_KERN_CONSUMER_FAIL;
-			pthread_mutex_unlock(socket->lock);
 			goto error;
 		}
 
 		/* For each channel, ask the consumer to rotate it. */
 		cds_list_for_each_entry(chan, &ksess->channel_list.head, list) {
-			/* FIXME: is that lock necessary, we don't do it in UST ? */
-			pthread_mutex_lock(socket->lock);
 			ret = rotate_add_channel_pending(chan->fd,
 					LTTNG_DOMAIN_KERNEL, session);
 			if (ret < 0) {
 				ret = LTTNG_ERR_KERN_CONSUMER_FAIL;
-				pthread_mutex_unlock(socket->lock);
 				goto error;
 			}
 
@@ -1193,17 +1189,13 @@ int kernel_rotate_session(struct ltt_session *session)
 					&session->rotate_pending_relay);
 			if (ret < 0) {
 				ret = LTTNG_ERR_KERN_CONSUMER_FAIL;
-				pthread_mutex_unlock(socket->lock);
 				goto error;
 			}
-
-			pthread_mutex_unlock(socket->lock);
 		}
 
 		/*
 		 * Rotate the metadata channel.
 		 */
-		pthread_mutex_lock(socket->lock);
 		ret = consumer_rotate_channel(socket, ksess->metadata->fd,
 				ksess->uid, ksess->gid, ksess->consumer,
 				ksess->consumer->subdir, 1,
@@ -1211,10 +1203,8 @@ int kernel_rotate_session(struct ltt_session *session)
 				&session->rotate_pending_relay);
 		if (ret < 0) {
 			ret = LTTNG_ERR_KERN_CONSUMER_FAIL;
-			pthread_mutex_unlock(socket->lock);
 			goto error;
 		}
-		pthread_mutex_unlock(socket->lock);
 	}
 
 	ret = LTTNG_OK;
