@@ -341,9 +341,6 @@ struct manage_client_handle *manage_client_handle;
 /* Global hash tables */
 struct lttng_ht *agent_apps_ht_by_sock = NULL;
 
-/* Queue of rotation jobs populated by the sessiond-timer. */
-struct rotation_thread_timer_queue *rotation_timer_queue = NULL;
-
 /*
  * Whether sessiond is ready for commands/notification channel/health check
  * requests.
@@ -734,8 +731,7 @@ static void sessiond_cleanup(void)
 		/* Cleanup ALL session */
 		cds_list_for_each_entry_safe(sess, stmp,
 				&session_list_ptr->head, list) {
-			cmd_destroy_session(sess, kernel_poll_pipe[1],
-					rotation_timer_queue);
+			cmd_destroy_session(sess, kernel_poll_pipe[1]);
 		}
 	}
 
@@ -3863,7 +3859,7 @@ error_add_context:
 	}
 	case LTTNG_STOP_TRACE:
 	{
-		ret = cmd_stop_trace(cmd_ctx->session, rotation_timer_queue);
+		ret = cmd_stop_trace(cmd_ctx->session);
 		break;
 	}
 	case LTTNG_CREATE_SESSION:
@@ -3909,8 +3905,7 @@ error_add_context:
 	}
 	case LTTNG_DESTROY_SESSION:
 	{
-		ret = cmd_destroy_session(cmd_ctx->session, kernel_poll_pipe[1],
-				rotation_timer_queue);
+		ret = cmd_destroy_session(cmd_ctx->session, kernel_poll_pipe[1]);
 
 		/* Set session to NULL so we do not unlock it after free. */
 		cmd_ctx->session = NULL;
@@ -4306,8 +4301,7 @@ error_add_context:
 		ret = cmd_rotate_setup(cmd_ctx->session,
 				cmd_ctx->lsm->u.rotate_setup.timer_us,
 				cmd_ctx->lsm->u.rotate_setup.size,
-				cmd_ctx->client_rotate_pipe,
-				rotation_timer_queue);
+				cmd_ctx->client_rotate_pipe);
 		if (ret < 0) {
 			ret = -ret;
 			goto error;
@@ -5841,6 +5835,8 @@ int main(int argc, char **argv)
 			*kernel_channel_rotate_pipe = NULL,
 			*client_rotate_pipe = NULL;
 	struct timer_thread_parameters timer_thread_ctx;
+	/* Queue of rotation jobs populated by the sessiond-timer. */
+	struct rotation_thread_timer_queue *rotation_timer_queue = NULL;
 
 	init_kernel_workarounds();
 
