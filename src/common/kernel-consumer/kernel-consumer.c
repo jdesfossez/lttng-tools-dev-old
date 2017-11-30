@@ -385,7 +385,7 @@ int lttng_kconsumer_snapshot_metadata(uint64_t key, char *path,
 	do {
 		health_code_update();
 
-		ret_read = lttng_kconsumer_read_subbuffer(metadata_stream, ctx);
+		ret_read = lttng_kconsumer_read_subbuffer(metadata_stream, ctx, NULL);
 		if (ret_read < 0) {
 			if (ret_read != -EAGAIN) {
 				ERR("Kernel snapshot reading metadata subbuffer (ret: %zd)",
@@ -782,8 +782,8 @@ int lttng_kconsumer_recv_cmd(struct lttng_consumer_local_data *ctx,
 			goto end_nosignal;
 		}
 
-		DBG("Kernel consumer ADD_STREAM %s (fd: %d) with relayd id %" PRIu64,
-				new_stream->name, fd, new_stream->relayd_stream_id);
+		DBG("Kernel consumer ADD_STREAM %s (fd: %d) %s with relayd id %" PRIu64,
+				new_stream->name, fd, new_stream->chan->pathname, new_stream->relayd_stream_id);
 		break;
 	}
 	case LTTNG_CONSUMER_STREAMS_SENT:
@@ -1481,7 +1481,7 @@ end:
  * Consume data on a file descriptor and write it on a trace file.
  */
 ssize_t lttng_kconsumer_read_subbuffer(struct lttng_consumer_stream *stream,
-		struct lttng_consumer_local_data *ctx)
+		struct lttng_consumer_local_data *ctx, bool *rotated)
 {
 	unsigned long len, subbuf_size, padding;
 	int err, write_index = 1, rotation_ret;
@@ -1503,6 +1503,9 @@ ssize_t lttng_kconsumer_read_subbuffer(struct lttng_consumer_stream *stream,
 			ERR("Stream rotation error");
 			ret = -1;
 			goto error;
+		}
+		if (rotated) {
+			*rotated = true;
 		}
 	}
 
@@ -1723,6 +1726,9 @@ rotate:
 			ERR("Stream rotation error");
 			ret = -1;
 			goto error;
+		}
+		if (rotated) {
+			*rotated = true;
 		}
 	} else if (rotation_ret < 0) {
 		ERR("Checking if stream is ready to rotate");

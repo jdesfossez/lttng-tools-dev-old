@@ -2632,7 +2632,7 @@ end:
  * Return 0 on success else a negative value.
  */
 int lttng_ustconsumer_read_subbuffer(struct lttng_consumer_stream *stream,
-		struct lttng_consumer_local_data *ctx)
+		struct lttng_consumer_local_data *ctx, bool *rotated)
 {
 	unsigned long len, subbuf_size, padding;
 	int err, write_index = 1, rotation_ret;
@@ -2682,6 +2682,9 @@ int lttng_ustconsumer_read_subbuffer(struct lttng_consumer_stream *stream,
 			ERR("Stream rotation error");
 			ret = -1;
 			goto error;
+		}
+		if (rotated) {
+			*rotated = true;
 		}
 	}
 
@@ -2829,6 +2832,9 @@ rotate:
 			ERR("Stream rotation error");
 			ret = -1;
 			goto error;
+		}
+		if (rotated) {
+			*rotated = true;
 		}
 	} else if (rotation_ret < 0) {
 		ERR("Checking if stream is ready to rotate");
