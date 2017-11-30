@@ -1177,15 +1177,15 @@ int kernel_rotate_session(struct ltt_session *session)
 
 		/* For each channel, ask the consumer to rotate it. */
 		cds_list_for_each_entry(chan, &ksess->channel_list.head, list) {
-			ret = rotate_add_channel_pending(chan->fd,
+			ret = rotate_add_channel_pending(chan->key,
 					LTTNG_DOMAIN_KERNEL, session);
 			if (ret < 0) {
 				ret = LTTNG_ERR_KERN_CONSUMER_FAIL;
 				goto error;
 			}
 
-			DBG("Rotate channel %d, session %s", chan->fd, session->name);
-			ret = consumer_rotate_channel(socket, chan->fd,
+			DBG("Rotate channel %" PRIu64 ", session %s", chan->key, session->name);
+			ret = consumer_rotate_channel(socket, chan->key,
 					ksess->uid, ksess->gid, ksess->consumer,
 					ksess->consumer->subdir, 0, session->rotate_count,
 					&session->rotate_pending_relay);
