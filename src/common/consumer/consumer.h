@@ -453,12 +453,6 @@ struct lttng_consumer_stream {
 	 * ready to be rotated.
 	 */
 	unsigned int rotate_ready:1;
-	/*
-	 * Flag set to 1 if the stream just got rotated. This is used to
-	 * perform actions on the channel after a rotation without needing
-	 * to nest the channel lock inside the stream lock.
-	 */
-	unsigned int rotated:1;
 
 	/* Indicate if the stream still has some data to be read. */
 	unsigned int has_data:1;

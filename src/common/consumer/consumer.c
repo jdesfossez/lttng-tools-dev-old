@@ -2309,11 +2309,8 @@ int consumer_post_rotation(struct lttng_consumer_stream *stream,
 {
 	int ret = 0;
 
-	if (!stream->rotated) {
-		goto end;
-	}
-
 	pthread_mutex_lock(&stream->chan->lock);
+
 	switch (consumer_data.type) {
 		case LTTNG_CONSUMER_KERNEL:
 			break;
@@ -2334,12 +2331,11 @@ int consumer_post_rotation(struct lttng_consumer_stream *stream,
 	}
 
 	if (--stream->chan->nr_stream_rotate_pending == 0) {
+		DBG("Notifiy sessiond %s", stream->chan->pathname);
 		ret = rotate_notify_sessiond(ctx, stream->chan->key);
 	}
 	pthread_mutex_unlock(&stream->chan->lock);
-	stream->rotated = 0;
 
-end:
 	return ret;
 }
 
@@ -3390,6 +3386,7 @@ ssize_t lttng_consumer_read_subbuffer(struct lttng_consumer_stream *stream,
 {
 	ssize_t ret;
 	int rotate_ret;
+	bool rotated = false;
 
 	pthread_mutex_lock(&stream->lock);
 	if (stream->metadata_flag) {
@@ -3398,11 +3395,11 @@ ssize_t lttng_consumer_read_subbuffer(struct lttng_consumer_stream *stream,
 
 	switch (consumer_data.type) {
 	case LTTNG_CONSUMER_KERNEL:
-		ret = lttng_kconsumer_read_subbuffer(stream, ctx);
+		ret = lttng_kconsumer_read_subbuffer(stream, ctx, &rotated);
 		break;
 	case LTTNG_CONSUMER32_UST:
 	case LTTNG_CONSUMER64_UST:
-		ret = lttng_ustconsumer_read_subbuffer(stream, ctx);
+		ret = lttng_ustconsumer_read_subbuffer(stream, ctx, &rotated);
 		break;
 	default:
 		ERR("Unknown consumer_data type");
@@ -3416,11 +3413,12 @@ ssize_t lttng_consumer_read_subbuffer(struct lttng_consumer_stream *stream,
 		pthread_mutex_unlock(&stream->metadata_rdv_lock);
 	}
 	pthread_mutex_unlock(&stream->lock);
-
-	rotate_ret = consumer_post_rotation(stream, ctx);
-	if (rotate_ret < 0) {
-		ERR("Failed after a rotation");
-		ret = -1;
+	if (rotated) {
+		rotate_ret = consumer_post_rotation(stream, ctx);
+		if (rotate_ret < 0) {
+			ERR("Failed after a rotation");
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -3977,7 +3975,6 @@ int lttng_consumer_rotate_channel(uint64_t key, char *path,
 			goto end;
 		}
 	}
-	pthread_mutex_unlock(&channel->lock);
 
 	cds_lfht_for_each_entry_duplicate(ht->ht,
 			ht->hash_fct(&channel->key, lttng_ht_seed),
@@ -4020,12 +4017,14 @@ int lttng_consumer_rotate_channel(uint64_t key, char *path,
 
 		pthread_mutex_unlock(&stream->lock);
 	}
+	pthread_mutex_unlock(&channel->lock);
 
 	ret = 0;
 	goto end;
 
 end_unlock:
 	pthread_mutex_unlock(&stream->lock);
+	pthread_mutex_unlock(&channel->lock);
 end:
 	rcu_read_unlock();
 	return ret;
@@ -4086,7 +4085,6 @@ void lttng_consumer_reset_stream_rotate_state(struct lttng_consumer_stream *stre
 {
 	stream->rotate_position = 0;
 	stream->rotate_ready = 0;
-	stream->rotated = 1;
 }
 
 /*
@@ -4272,7 +4270,6 @@ int lttng_consumer_rotate_ready_streams(uint64_t key,
 			pthread_mutex_unlock(&stream->lock);
 			continue;
 		}
-		fprintf(stderr, "ready1\n");
 		DBG("Consumer rotate ready stream %" PRIu64, stream->key);
 
 		ret = lttng_consumer_rotate_stream(ctx, stream);
