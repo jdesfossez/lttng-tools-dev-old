@@ -3072,6 +3072,22 @@ static unsigned int lttng_sessions_count(uid_t uid, gid_t gid)
 }
 
 /*
+ * Check if the current kernel tracer supports the session rotation feature.
+ * Return 1 if it does, 0 otherwise.
+ */
+static int check_rotate_compatible(void)
+{
+	int ret = 1;
+
+	if (kernel_tracer_version.minor < 11) {
+		DBG("Kernel tracer version is not compatible with the rotation feature");
+		ret = 0;
+	}
+
+	return ret;
+}
+
+/*
  * Process the command requested by the lttng client within the command
  * context structure. This function make sure that the return structure (llm)
  * is set and ready for transmission before returning.
@@ -3854,6 +3870,18 @@ error_add_context:
 	}
 	case LTTNG_START_TRACE:
 	{
+		/*
+		 * On the first start, if we have a kernel session and we have enabled
+		 * time or size-based rotations, we have to make sure the kernel tracer
+		 * supports it.
+		 */
+		if (!cmd_ctx->session->has_been_started && cmd_ctx->session->kernel_session && \
+				(cmd_ctx->session->rotate_timer_period || cmd_ctx->session->rotate_size) && \
+				!check_rotate_compatible()) {
+			DBG("Kernel tracer version is not compatible with the rotation feature");
+			ret = LTTNG_ERR_ROTATE_WRONG_VERSION;
+			goto error;
+		}
 		ret = cmd_start_trace(cmd_ctx->session);
 		break;
 	}
@@ -4257,6 +4285,12 @@ error_add_context:
 
 		DBG("Client rotate session %" PRIu64, cmd_ctx->session->id);
 
+		if (cmd_ctx->session->kernel_session && !check_rotate_compatible()) {
+			DBG("Kernel tracer version is not compatible with the rotation feature");
+			ret = LTTNG_ERR_ROTATE_WRONG_VERSION;
+			goto error;
+		}
+
 		ret = cmd_rotate_session(cmd_ctx->session, &rotate_return);
 		if (ret < 0) {
 			ret = -ret;
@@ -4298,6 +4332,12 @@ error_add_context:
 	}
 	case LTTNG_ROTATE_SETUP:
 	{
+		if (cmd_ctx->session->kernel_session && !check_rotate_compatible()) {
+			DBG("Kernel tracer version is not compatible with the rotation feature");
+			ret = LTTNG_ERR_ROTATE_WRONG_VERSION;
+			goto error;
+		}
+
 		ret = cmd_rotate_setup(cmd_ctx->session,
 				cmd_ctx->lsm->u.rotate_setup.timer_us,
 				cmd_ctx->lsm->u.rotate_setup.size,

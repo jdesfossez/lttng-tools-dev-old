@@ -110,6 +110,7 @@ static int setup_rotate(char *session_name, uint64_t timer, uint64_t size)
 
 	ret = lttng_rotate_setup(attr);
 	if (ret) {
+		ERR("%s", lttng_strerror(ret));
 		if (lttng_opt_mi) {
 			ret = mi_lttng_writer_write_element_string(writer,
 					mi_lttng_element_rotate_status, "error");
