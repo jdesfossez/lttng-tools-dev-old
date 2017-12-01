@@ -4324,6 +4324,11 @@ int cmd_rotate_session(struct ltt_session *session,
 		}
 	}
 
+	if (!session->has_been_started) {
+		ret = -LTTNG_ERR_START_SESSION_ONCE;
+		goto error;
+	}
+
 	if (session->live_timer || session->snapshot_mode ||
 			!session->output_traces) {
 		ret = -LTTNG_ERR_ROTATE_NOT_AVAILABLE;
