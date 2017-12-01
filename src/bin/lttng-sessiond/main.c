@@ -5845,6 +5845,7 @@ int main(int argc, char **argv)
 			*ust64_channel_monitor_pipe = NULL,
 			*kernel_channel_monitor_pipe = NULL;
 	bool notification_thread_running = false;
+	bool rotation_thread_running = false;
 	bool timer_thread_running = false;
 	struct lttng_pipe *ust32_channel_rotate_pipe = NULL,
 			*ust64_channel_rotate_pipe = NULL,
@@ -6452,6 +6453,7 @@ int main(int argc, char **argv)
 		stop_threads();
 		goto exit_rotation;
 	}
+	rotation_thread_running = true;
 
 	/* Create timer thread. */
 	ret = pthread_create(&timer_thread, default_pthread_attr(),
@@ -6697,13 +6699,14 @@ exit_init_data:
 
 	if (rotation_thread_handle) {
 		rotation_thread_handle_destroy(rotation_thread_handle);
-	}
-
-	ret = pthread_join(rotation_thread, &status);
-	if (ret) {
-		errno = ret;
-		PERROR("pthread_join rotation thread");
-		retval = -1;
+		if (rotation_thread_running) {
+			ret = pthread_join(rotation_thread, &status);
+			if (ret) {
+				errno = ret;
+				PERROR("pthread_join rotation thread");
+				retval = -1;
+			}
+		}
 	}
 
 	if (timer_thread_running) {
