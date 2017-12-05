@@ -99,7 +99,11 @@ int lttng_rotate_session_get_output_path(
 	}
 
 	if (rotate_handle->status == LTTNG_ROTATE_COMPLETED) {
-		snprintf(*path, PATH_MAX, "%s", rotate_handle->output_path);
+		ret = snprintf(*path, PATH_MAX, "%s", rotate_handle->output_path);
+		if (ret < 0) {
+			ret = -1;
+			goto end;
+		}
 		ret = 0;
 	} else {
 		ret = -1;
@@ -124,7 +128,7 @@ void init_rotate_handle(struct lttng_rotate_session_handle *rotate_handle,
 		struct lttng_rotate_session_return *rotate_return,
 		struct lttng_rotate_session_attr *attr)
 {
-	snprintf(rotate_handle->session_name, LTTNG_NAME_MAX, "%s",
+	(void) snprintf(rotate_handle->session_name, LTTNG_NAME_MAX, "%s",
 			attr->session_name);
 	rotate_handle->rotate_id = rotate_return->rotate_id;
 	rotate_handle->status = rotate_return->status;
@@ -185,8 +189,13 @@ int lttng_rotate_session_pending(
 	int ret;
 	struct lttng_rotate_pending_return *pending_return = NULL;
 
-	snprintf(attr.session_name, LTTNG_NAME_MAX, "%s",
+	ret = snprintf(attr.session_name, LTTNG_NAME_MAX, "%s",
 			rotate_handle->session_name);
+	if (ret < 0) {
+		rotate_handle->status = LTTNG_ROTATE_ERROR;
+		ret = -1;
+		goto end;
+	}
 
 	memset(&lsm, 0, sizeof(lsm));
 	lsm.cmd_type = LTTNG_ROTATE_PENDING;
@@ -204,8 +213,13 @@ int lttng_rotate_session_pending(
 	switch(pending_return->status) {
 	/* Not pending anymore */
 	case LTTNG_ROTATE_COMPLETED:
-		snprintf(rotate_handle->output_path, PATH_MAX, "%s",
+		ret = snprintf(rotate_handle->output_path, PATH_MAX, "%s",
 				pending_return->output_path);
+		if (ret < 0) {
+			rotate_handle->status = LTTNG_ROTATE_ERROR;
+			ret = -1;
+			goto end;
+		}
 	case LTTNG_ROTATE_EXPIRED:
 		ret = 0;
 		break;

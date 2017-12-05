@@ -2381,8 +2381,13 @@ int domain_mkdir(struct consumer_output *output, struct ltt_session *session,
 		goto end;
 	}
 
-	snprintf(path, PATH_MAX, "%s%s%s", session_get_base_path(session),
+	ret = snprintf(path, PATH_MAX, "%s%s%s", session_get_base_path(session),
 			output->chunk_path, output->subdir);
+	if (ret < 0) {
+		ERR("Format path");
+		ret = -1;
+		goto end;
+	}
 
 	DBG("Domain mkdir %s for session %" PRIu64, path, session->id);
 	rcu_read_lock();
@@ -2568,9 +2573,12 @@ void rename_active_chunk(struct ltt_session *session)
 	 * The currently active tracing path is now the folder we
 	 * want to rename.
 	 */
-	snprintf(session->rotation_chunk.current_rotate_path,
+	ret = snprintf(session->rotation_chunk.current_rotate_path,
 			PATH_MAX, "%s",
 			session->rotation_chunk.active_tracing_path);
+	if (ret < 0) {
+		ERR("Format current_rotate_path");
+	}
 	ret = rename_complete_chunk(session, time(NULL));
 	if (ret < 0) {
 		ERR("Renaming active session chunk");
@@ -2580,8 +2588,11 @@ void rename_active_chunk(struct ltt_session *session)
 	 * the active tracing path is now the renamed folder and we have to
 	 * restore the rotate count.
 	 */
-	snprintf(session->rotation_chunk.active_tracing_path, PATH_MAX, "%s",
+	ret = snprintf(session->rotation_chunk.active_tracing_path, PATH_MAX, "%s",
 			session->rotation_chunk.current_rotate_path);
+	if (ret < 0) {
+		ERR("Format active_tracing_path");
+	}
 	session->rotate_count--;
 }
 
@@ -4365,17 +4376,27 @@ int cmd_rotate_session(struct ltt_session *session,
 			assert(0);
 		}
 		assert(base_path);
-		snprintf(session->rotation_chunk.current_rotate_path,
+		ret = snprintf(session->rotation_chunk.current_rotate_path,
 				PATH_MAX, "%s",
 				base_path);
+		if (ret < 0) {
+			ERR("Format current_rotate_path");
+			ret = -1;
+			goto error;
+		}
 	} else {
 		/*
 		 * The currently active tracing path is now the folder we
 		 * want to rotate.
 		 */
-		snprintf(session->rotation_chunk.current_rotate_path,
+		ret = snprintf(session->rotation_chunk.current_rotate_path,
 				PATH_MAX, "%s",
 				session->rotation_chunk.active_tracing_path);
+		if (ret < 0) {
+			ERR("Format current_rotate_path");
+			ret = -1;
+			goto error;
+		}
 	}
 	DBG("Current rotate path %s", session->rotation_chunk.current_rotate_path);
 
@@ -4401,17 +4422,27 @@ int cmd_rotate_session(struct ltt_session *session,
 		 * The active path for the next rotation/destroy.
 		 * Ex: ~/lttng-traces/auto-20170922-111748/20170922-111754-42
 		 */
-		snprintf(session->rotation_chunk.active_tracing_path,
+		ret = snprintf(session->rotation_chunk.active_tracing_path,
 				PATH_MAX, "%s/%s-%" PRIu64,
 				session_get_base_path(session),
 				datetime, session->rotate_count + 1);
+		if (ret < 0) {
+			ERR("Format active_tracing_path");
+			ret = -1;
+			goto error;
+		}
 		/*
 		 * The sub-directory for the consumer
 		 * Ex: /20170922-111754-42/kernel
 		 */
-		snprintf(session->kernel_session->consumer->chunk_path,
+		ret = snprintf(session->kernel_session->consumer->chunk_path,
 				PATH_MAX, "/%s-%" PRIu64, datetime,
 				session->rotate_count + 1);
+		if (ret < 0) {
+			ERR("Format active_tracing_path");
+			ret = -1;
+			goto error;
+		}
 		/*
 		 * Create the new chunk folder, before the rotation begins so we don't
 		 * race with the consumer/tracer activity.
@@ -4429,13 +4460,23 @@ int cmd_rotate_session(struct ltt_session *session,
 		}
 	}
 	if (session->ust_session) {
-		snprintf(session->rotation_chunk.active_tracing_path,
+		ret = snprintf(session->rotation_chunk.active_tracing_path,
 				PATH_MAX, "%s/%s-%" PRIu64,
 				session_get_base_path(session),
 				datetime, session->rotate_count + 1);
-		snprintf(session->ust_session->consumer->chunk_path,
+		if (ret < 0) {
+			ERR("Format active_tracing_path");
+			ret = -1;
+			goto error;
+		}
+		ret = snprintf(session->ust_session->consumer->chunk_path,
 				PATH_MAX, "/%s-%" PRIu64, datetime,
 				session->rotate_count + 1);
+		if (ret < 0) {
+			ERR("Format active_tracing_path");
+			ret = -1;
+			goto error;
+		}
 		/*
 		 * Create the new chunk folder, before the rotation begins so we don't
 		 * race with the consumer/tracer activity.
@@ -4535,8 +4576,14 @@ int cmd_rotate_pending(struct ltt_session *session,
 		DBG("Session %s, rotate_id %" PRIu64 " finished",
 				session->name, session->rotate_count);
 		(*pending_return)->status = LTTNG_ROTATE_COMPLETED;
-		snprintf((*pending_return)->output_path, PATH_MAX, "%s",
+		ret = snprintf((*pending_return)->output_path, PATH_MAX, "%s",
 				session->rotation_chunk.current_rotate_path);
+		if (ret < 0) {
+			ERR("Format active_tracing_path");
+			(*pending_return)->status = LTTNG_ROTATE_ERROR;
+			ret = -1;
+			goto end;
+		}
 	}
 
 	ret = LTTNG_OK;
@@ -4650,8 +4697,13 @@ int cmd_rotate_get_current_path(struct ltt_session *session,
 		(*get_return)->status = LTTNG_ROTATE_NO_ROTATION;
 	} else {
 		(*get_return)->status = session->rotate_status;
-		snprintf((*get_return)->output_path, PATH_MAX, "%s",
+		ret = snprintf((*get_return)->output_path, PATH_MAX, "%s",
 				session->rotation_chunk.current_rotate_path);
+		if (ret < 0) {
+			ERR("Format output_path");
+			ret = -1;
+			goto end;
+		}
 	}
 
 	ret = LTTNG_OK;
