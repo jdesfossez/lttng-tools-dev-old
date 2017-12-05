@@ -160,15 +160,30 @@ int rename_first_chunk(struct ltt_session *session,
 
 	/* Current domain path: <session>/kernel */
 	if (session->net_handle > 0) {
-		snprintf(tmppath, PATH_MAX, "%s/%s",
+		ret = snprintf(tmppath, PATH_MAX, "%s/%s",
 				consumer->dst.net.base_dir, consumer->subdir);
+		if (ret < 0) {
+			ERR("Format tmppath");
+			ret = -1;
+			goto error;
+		}
 	} else {
-		snprintf(tmppath, PATH_MAX, "%s/%s",
+		ret = snprintf(tmppath, PATH_MAX, "%s/%s",
 				consumer->dst.session_root_path, consumer->subdir);
+		if (ret < 0) {
+			ERR("Format tmppath");
+			ret = -1;
+			goto error;
+		}
 	}
 	/* New domain path: <session>/<start-date>-<end-date>-<rotate-count>/kernel */
-	snprintf(tmppath2, PATH_MAX, "%s/%s",
+	ret = snprintf(tmppath2, PATH_MAX, "%s/%s",
 			new_path, consumer->subdir);
+	if (ret < 0) {
+		ERR("Format tmppath2");
+		ret = -1;
+		goto error;
+	}
 	/*
 	 * Move the per-domain folder inside the first rotation
 	 * folder.
@@ -224,10 +239,15 @@ int rename_complete_chunk(struct ltt_session *session, time_t ts)
 		 * session_root_path, so we need to create the chunk folder
 		 * and move the domain-specific folders inside it.
 		 */
-		snprintf(new_path, PATH_MAX, "%s/%s-%s-%" PRIu64,
+		ret = snprintf(new_path, PATH_MAX, "%s/%s-%s-%" PRIu64,
 				session->rotation_chunk.current_rotate_path,
 				start_time,
 				datetime, session->rotate_count);
+		if (ret < 0) {
+			ERR("Format tmppath");
+			ret = -1;
+			goto end;
+		}
 
 		if (session->kernel_session) {
 			ret = rename_first_chunk(session,
@@ -264,10 +284,15 @@ int rename_complete_chunk(struct ltt_session *session, time_t ts)
 		/* Recreate the session->rotation_chunk.current_rotate_path */
 		timeinfo = localtime(&session->last_chunk_start_ts);
 		strftime(start_datetime, sizeof(start_datetime), "%Y%m%d-%H%M%S", timeinfo);
-		snprintf(new_path, PATH_MAX, "%s/%s-%s-%" PRIu64,
+		ret = snprintf(new_path, PATH_MAX, "%s/%s-%s-%" PRIu64,
 				session_get_base_path(session),
 				start_datetime,
 				datetime, session->rotate_count);
+		if (ret < 0) {
+			ERR("Format new_path");
+			ret = -1;
+			goto error;
+		}
 		ret = session_rename_chunk(session,
 				session->rotation_chunk.current_rotate_path,
 				new_path);
@@ -283,8 +308,13 @@ int rename_complete_chunk(struct ltt_session *session, time_t ts)
 	 * and can be queried by the client with rotate_pending until the next
 	 * rotation is started.
 	 */
-	snprintf(session->rotation_chunk.current_rotate_path, PATH_MAX,
+	ret = snprintf(session->rotation_chunk.current_rotate_path, PATH_MAX,
 			"%s", new_path);
+	if (ret < 0) {
+		ERR("Format current_rotate_path");
+		ret = -1;
+		goto error;
+	}
 
 	goto end;
 

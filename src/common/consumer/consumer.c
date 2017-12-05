@@ -3959,7 +3959,12 @@ int lttng_consumer_rotate_channel(uint64_t key, char *path,
 	}
 	pthread_mutex_lock(&channel->lock);
 	channel->current_chunk_id = new_chunk_id;
-	snprintf(channel->pathname, PATH_MAX, "%s", path);
+	ret = snprintf(channel->pathname, PATH_MAX, "%s", path);
+	if (ret < 0) {
+		ERR("Format pathname");
+		ret = -1;
+		goto end;
+	}
 	if (relayd_id == -1ULL) {
 		/*
 		 * The domain path (/ust or /kernel) has been created before, we

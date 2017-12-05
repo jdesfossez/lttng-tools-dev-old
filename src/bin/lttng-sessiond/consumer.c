@@ -1622,15 +1622,25 @@ int consumer_rotate_channel(struct consumer_socket *socket, uint64_t key,
 
 	if (output->type == CONSUMER_DST_NET) {
 		msg.u.rotate_channel.relayd_id = output->net_seq_index;
-		snprintf(msg.u.rotate_channel.pathname, PATH_MAX, "%s%s%s",
+		ret = snprintf(msg.u.rotate_channel.pathname, PATH_MAX, "%s%s%s",
 				output->dst.net.base_dir,
 				output->chunk_path, domain_path);
+		if (ret < 0) {
+			ERR("Format pathname");
+			ret = -1;
+			goto error;
+		}
 		*rotate_pending_relay = true;
 	} else {
 		msg.u.rotate_channel.relayd_id = (uint64_t) -1ULL;
-		snprintf(msg.u.rotate_channel.pathname, PATH_MAX, "%s%s%s",
+		ret = snprintf(msg.u.rotate_channel.pathname, PATH_MAX, "%s%s%s",
 				output->dst.session_root_path,
 				output->chunk_path, domain_path);
+		if (ret < 0) {
+			ERR("Format pathname");
+			ret = -1;
+			goto error;
+		}
 	}
 
 	health_code_update();
@@ -1661,8 +1671,18 @@ int consumer_rotate_rename(struct consumer_socket *socket, uint64_t session_id,
 	msg.u.rotate_rename.session_id = session_id;
 	msg.u.rotate_rename.uid = uid;
 	msg.u.rotate_rename.gid = gid;
-	snprintf(msg.u.rotate_rename.current_path, PATH_MAX, "%s", current_path);
-	snprintf(msg.u.rotate_rename.new_path, PATH_MAX, "%s", new_path);
+	ret = snprintf(msg.u.rotate_rename.current_path, PATH_MAX, "%s", current_path);
+	if (ret < 0) {
+		ERR("Format current_path");
+		ret = -1;
+		goto error;
+	}
+	ret = snprintf(msg.u.rotate_rename.new_path, PATH_MAX, "%s", new_path);
+	if (ret < 0) {
+		ERR("Format new_path");
+		ret = -1;
+		goto error;
+	}
 
 	if (output->type == CONSUMER_DST_NET) {
 		msg.u.rotate_rename.relayd_id = output->net_seq_index;
@@ -1741,7 +1761,12 @@ int consumer_mkdir(struct consumer_socket *socket, uint64_t session_id,
 	msg.u.mkdir.session_id = session_id;
 	msg.u.mkdir.uid = uid;
 	msg.u.mkdir.gid = gid;
-	snprintf(msg.u.mkdir.path, PATH_MAX, "%s", path);
+	ret = snprintf(msg.u.mkdir.path, PATH_MAX, "%s", path);
+	if (ret < 0) {
+		ERR("Format path");
+		ret = -1;
+		goto error;
+	}
 
 	if (output->type == CONSUMER_DST_NET) {
 		msg.u.mkdir.relayd_id = output->net_seq_index;
