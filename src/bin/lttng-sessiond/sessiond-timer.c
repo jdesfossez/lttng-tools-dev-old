@@ -407,7 +407,7 @@ void *sessiond_timer_thread(void *data)
 	rcu_register_thread();
 	rcu_thread_online();
 
-	health_register(health_sessiond, HEALTH_SESSIOND_TYPE_NOTIFICATION);
+	health_register(health_sessiond, HEALTH_SESSIOND_TYPE_TIMER);
 
 	health_code_update();
 
