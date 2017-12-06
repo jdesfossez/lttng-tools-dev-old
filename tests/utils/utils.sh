@@ -1587,3 +1587,29 @@ function lttng_enable_rotation_timer_fail ()
 {
 	lttng_enable_rotation_timer 1 $@
 }
+
+function lttng_enable_rotation_size ()
+{
+	local expected_to_fail=$1
+	local sess_name=$2
+	local size=$3
+
+	$TESTDIR/../src/bin/lttng/$LTTNG_BIN enable-rotation -s $sess_name --size $size 1> $OUTPUT_DEST 2> $ERROR_OUTPUT_DEST
+	ret=$?
+	if [[ $expected_to_fail -eq "1" ]]; then
+		test "$ret" -ne "0"
+		ok $? "Expected fail on rotate session $sess_name"
+	else
+		ok $ret "Rotate session $sess_name"
+	fi
+}
+
+function lttng_enable_rotation_size_ok ()
+{
+	lttng_enable_rotation_size 0 $@
+}
+
+function lttng_enable_rotation_size_fail ()
+{
+	lttng_enable_rotation_size 1 $@
+}
